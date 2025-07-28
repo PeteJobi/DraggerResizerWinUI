@@ -43,12 +43,18 @@ namespace DraggerResizer
             InitDraggerResizer(element, default(HashSet<Orientation>));
         }
 
-        public void InitDraggerResizer(FrameworkElement element, HashSet<Orientation>? orientations, HandlingParameters? parameters = null, Action? dragged = null, Action? resized = null, Action? started = null, Action? ended = null)
+        public void InitDraggerResizer(FrameworkElement element, HashSet<Orientation>? orientations, HandlingParameters? parameters = null, HandlingCallbacks? callbacks = null)
         {
             var oriDictionary = orientations?.ToDictionary(o => o, _ => new Appearance());
-            InitDraggerResizer(element, oriDictionary, parameters, dragged, resized, started, ended);
+            if (oriDictionary != null && oriDictionary.ContainsKey(Orientation.Horizontal) && oriDictionary.ContainsKey(Orientation.Vertical))
+            {
+                oriDictionary.Remove(Orientation.Horizontal);
+                oriDictionary.Remove(Orientation.Vertical);
+                oriDictionary.Add(HorizontalAndVertical, new Appearance());
+            }
+            InitDraggerResizer(element, oriDictionary, parameters, callbacks);
         }
-        public void InitDraggerResizer(FrameworkElement element, Dictionary<Orientation, Appearance>? orientations, HandlingParameters? parameters = null, Action? dragged = null, Action? resized = null, Action? started = null, Action? ended = null)
+        public void InitDraggerResizer(FrameworkElement element, Dictionary<Orientation, Appearance>? orientations, HandlingParameters? parameters = null, HandlingCallbacks? callbacks = null)
         {
             if (entities.ContainsKey(element)) throw new NotSupportedException("This element has already been added");
             var elementParent = element.Parent;
@@ -92,14 +98,14 @@ namespace DraggerResizer
                     if(!parameters.DontChangeZIndex.Value) SetupZIndexUpdates(elementContainer, element);
                 }
                 elementContainer.ManipulationMode = ManipulationModes.TranslateX | ManipulationModes.TranslateY;
-                if (started != null) elementContainer.ManipulationStarted += (_, _) => started();
+                if (callbacks?.DragStarted != null) elementContainer.ManipulationStarted += (_, _) => callbacks.DragStarted();
                 elementContainer.ManipulationDelta += (sender, args) =>
                 {
                     DragManipulationDelta(elementContainer, entity, args.Delta.Translation, dragOrientation.Value);
                     args.Handled = true;
-                    dragged?.Invoke();
+                    callbacks?.Dragging?.Invoke();
                 };
-                if (ended != null) elementContainer.ManipulationCompleted += (_, _) => ended();
+                if (callbacks?.DragCompleted != null) elementContainer.ManipulationCompleted += (_, _) => callbacks.DragCompleted();
             }
 
             var halfHandleCount = handles.Length / 2;
@@ -131,14 +137,14 @@ namespace DraggerResizer
                     handle.ManipulationMode = ManipulationModes.TranslateX;
                 }
 
-                if (started != null) handle.ManipulationStarted += (_, _) => started.Invoke();
+                if (callbacks?.ResizeStarted != null) handle.ManipulationStarted += (_, _) => callbacks.ResizeStarted.Invoke(pos);
                 handle.ManipulationDelta += (sender, args) =>
                 {
                     ResizeManipulationDelta(element, entity, args.Delta.Translation, pos);
                     args.Handled = true;
-                    resized?.Invoke();
+                    callbacks?.Resizing?.Invoke(pos);
                 };
-                if (ended != null) handle.ManipulationCompleted += (_, _) => ended.Invoke();
+                if (callbacks?.ResizeCompleted != null) handle.ManipulationCompleted += (_, _) => callbacks.ResizeCompleted.Invoke(pos);
             }
 
             for (var i = halfHandleCount; i < handles.Length; i++)
@@ -164,14 +170,14 @@ namespace DraggerResizer
                     Canvas.SetTop(handle, Canvas.GetTop(elementContainer) + (i == 5 ? -halfThickness : elementContainer.Height - halfThickness));
                 }
 
-                if(started != null) handle.ManipulationStarted += (_, _) => started();
+                if (callbacks?.ResizeStarted != null) handle.ManipulationStarted += (_, _) => callbacks.ResizeStarted.Invoke(pos);
                 handle.ManipulationDelta += (sender, args) =>
                 {
                     ResizeManipulationDelta(element, entity, args.Delta.Translation, pos);
                     args.Handled = true;
-                    resized?.Invoke();
+                    callbacks?.Resizing?.Invoke(pos);
                 };
-                if(ended != null) handle.ManipulationCompleted += (_, _) => ended();
+                if (callbacks?.ResizeCompleted != null) handle.ManipulationCompleted += (_, _) => callbacks.ResizeCompleted.Invoke(pos);
             }
 
             entities.Add(element, entity);
@@ -762,7 +768,7 @@ namespace DraggerResizer
         Vertical = 512
     }
 
-    public enum Boundary{ NoBounds, BoundedAtCenter, BoundedAtEdges, Custom }
+    public enum Boundary{ NoBounds, BoundedAtEdges, BoundedAtCenter, Custom }
 
     public class Handle : Canvas
     {
@@ -812,5 +818,15 @@ namespace DraggerResizer
         public double? BoundaryTop { get; set; }
         public double? BoundaryRight { get; set; }
         public double? BoundaryBottom { get; set; }
+    }
+
+    public class HandlingCallbacks
+    {
+        public Action? DragStarted { get; set; }
+        public Action? Dragging { get; set; }
+        public Action? DragCompleted { get; set; }
+        public Action<Orientation>? ResizeStarted { get; set; }
+        public Action<Orientation>? Resizing { get; set; }
+        public Action<Orientation>? ResizeCompleted { get; set; }
     }
 }
