@@ -29,8 +29,6 @@ namespace DraggerResizer
         private const Orientation HorizontalAndVertical = Orientation.Horizontal | Orientation.Vertical;
         private static readonly Color Transparent = Color.FromArgb(0, 255, 255, 255);
         private Entity temporaryEntity;
-        //private static readonly Color Gray = Color.FromArgb(255, 255, 255, 255);
-        //private static readonly Color White = Color.FromArgb(255, 255, 255, 255);
 
         public DraggerResizer()
         {
@@ -304,7 +302,7 @@ namespace DraggerResizer
                         if (entityHandle != null) Canvas.SetZIndex(entityHandle, entity.ZIndex);
                     }
                 }
-                else if (entities[key].ZIndex > elementZIndex/* && entities[key].ZIndex <= entities.Count*/)
+                else if (entities[key].ZIndex > elementZIndex)
                 {
                     Canvas.SetZIndex(entity.Parent, --entity.ZIndex);
                     foreach (var entityHandle in entity.Handles)
@@ -458,8 +456,6 @@ namespace DraggerResizer
 
         private void ResizeManipulationDelta(FrameworkElement element, Entity entity, Point translation, Orientation handleOrientation)
         {
-            //Debug.WriteLine(handleOrientation);
-            //Orientation handleOrientation, bool entity.Parameters.KeepAspectRatio.Value, entity.Parameters.Boundary.Value entity.Parameters.Boundary.Value
             const int top = 0;
             const int right = 1;
             const int bottom = 2;
@@ -673,19 +669,13 @@ namespace DraggerResizer
         private bool OutOfBounds(ref double translation, FrameworkElement element, Orientation handleOrientation, double left, double top, HandlingParameters parameters)
         {
             if (parameters.Boundary == Boundary.NoBounds) return false;
-            //left = Math.Floor(left);
-            //top = Math.Floor(top);
             var (leftBoundary, topBoundary, rightBoundary, bottomBoundary) = GetManipulationBoundaries(element, parameters);
             var noSpaceTop = top <= topBoundary && translation <= 0;
             var noSpaceLeft = left <= leftBoundary && translation <= 0;
-            //var noSpaceBottom = topBoundary >= bottomBoundary - element.ActualHeight && translation > 0;
-            //var noSpaceRight = leftBoundary >= rightBoundary - element.ActualWidth && translation > 0;
             var maximumRightTranslation = rightBoundary - (left + element.Width);
             var maximumBottomTranslation = bottomBoundary - (top + element.Height);
             var noSpaceBottom = maximumBottomTranslation < 0.1 && translation >= 0;
             var noSpaceRight = maximumRightTranslation < 0.1 && translation >= 0;
-            //var noSpaceRight = rightBoundary <= left + element.ActualWidth && translation > 0;
-            //if(handleOrientation == Orientation.Right) Debug.WriteLine($"{noSpaceRight}, {left}, {rightBoundary - element.ActualWidth}, {left >= rightBoundary - element.ActualWidth}, {minSize - element.ActualWidth}, {translation}, {maximumRightTranslation}");
             switch (handleOrientation)
             {
                 case Orientation.Horizontal:
@@ -703,7 +693,6 @@ namespace DraggerResizer
                 case Orientation.Right:
                     if (noSpaceRight) return true;
                     translation = Math.Clamp(translation, -element.Width, maximumRightTranslation);
-                    //Debug.WriteLine($"     {translation}, {element.ActualWidth}.....{rightBoundary}..{leftBoundary}");
                     break;
                 case Orientation.Top:
                     if (noSpaceTop) return true;
@@ -712,15 +701,11 @@ namespace DraggerResizer
                 case Orientation.Bottom:
                     if (noSpaceBottom) return true;
                     translation = Math.Clamp(translation, -element.Height, maximumBottomTranslation);
-                    //if (translation < 1) translation = 1;
-                    //Debug.WriteLine($"     {translation}, {element.Height}.....{bottomBoundary}..{top}......{maximumBottomTranslation}");
-                    //if (translation > 0 && translation < 0.1) translation = 1;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(handleOrientation), handleOrientation, null);
             }
 
-            //if (translation < 1) translation = 1;
             return false;
         }
 
