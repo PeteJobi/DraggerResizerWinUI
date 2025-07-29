@@ -93,13 +93,31 @@ Two things you need to note from the onset
     Set the top coordinate of the target relative to the canvas. A _top_ value of 8 means the target will be positioned 8 pixels below the canvas's top edge. You can specify handling parameters that will be used for this operation. If you don't, the one you provided during initialization will be used.
   - **void PositionElement(FrameworkElement element, double left, double top, HandlingParameters? parameters = null)** <br>
     Set the left and top coordinate of the target relative to the canvas. Combines the above two methods.
+  - **void PositionElementAtCenter(FrameworkElement element)** <br>
+    Positions the target at the vertical and horizontal center of the parent canvas, using the target's center as the transform origin.
   - **void DragElementHorizontally(FrameworkElement element, double translation)** <br>
     This is like PositionElementLeft, but relative to the target itself. A _translation_ value of -23 means the target will be positioned 23 pixels to the left of where it was before the call.
   - **void DragElementVertically(FrameworkElement element, double translation)** <br>
     This is like PositionElementTop, but relative to the target itself. A _translation_ value of 8 means the target will be positioned 8 pixels downwards.
   - **void DragElement(FrameworkElement element, double translationX, double translationY)** <br>
-    This combines the above two methods
-  
+    This combines the above two methods.
+
+- Dimensions modification: Sets the size of the target.
+  - **void ResizeElementWidth(FrameworkElement element, double width, Orientation orientation = Orientation.Right, HandlingParameters? parameters = null)** <br>
+    Changes the width of the target to the specified _width_ value. The direction in which the target's width is added or subtracted is specified by the orientation property, which is Orientation.Right by default, meaning the Left coordinate won't change. You can specify handling parameters that will be used for this operation. If you don't, the one you provided during initialization will be used.
+  - **void ResizeElementHeight(FrameworkElement element, double height, Orientation orientation = Orientation.Bottom, HandlingParameters? parameters = null)** <br>
+    Changes the height of the target to the specified _height_ value. The direction in which the target's height is added or subtracted is specified by the orientation property, which is Orientation.Bottom by default, meaning the Top coordinate won't change. You can specify handling parameters that will be used for this operation. If you don't, the one you provided during initialization will be used.
+  - **void ResizeElement(FrameworkElement element, double width, double height, Orientation orientation = Orientation.BottomRight, HandlingParameters? parameters = null)** <br>
+    Changes the width and height of the target to the specified _width_ and _height_ values. The direction in which the target's dimensions are added or subtracted is specified by the orientation property, which is Orientation.BottomRight by default, meaning the Left and Top coordinate won't change. You can specify handling parameters that will be used for this operation. If you don't, the one you provided during initialization will be used.
+    
+- Miscellaneous: Some other methods that are nice to have.
+  - **void SetElementZIndex(FrameworkElement element, int zIndex)**
+    Call this to set the z-index of a target to the specified _zIndex_ value. Can be useful if you have other elements in the same canvas.
+  - **void SetElementZIndexTopmost(FrameworkElement element)**
+    If your _dr_ instance has initialized multiple targets, call this method for any of those targets to place it on top of other targets.
+  - **void SetAspectRatio(FrameworkElement element, double aspectRatio)**
+    Call this method to set a target's aspect ration to the specified _aspectRatio_ value. This value is expected to be the ratio of width to height expressed in decimal. For example, 16:9 would be ~1.77778. Keep in mind that this only temporarily changes the aspect ratio - if you specified KeepAspectRatio as false during initialization,
+    the user can still change the aspect ratio after this call is made. Also, this will reduce the width or height to conform to the ratio, so it doesn't exceed the canvas' bounds.
 
 # Enums and Classes
 - **Orientation**: These represents the position of resize handles and directions allowed for dragging.
