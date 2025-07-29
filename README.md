@@ -30,12 +30,12 @@ Two things you need to note from the onset
   ```
   For the following APIs, we'll assume that a variable called "dr" holds a reference to the draggerResizer object.
 - Initialization: To make your target draggable and resizable, you need to call one of three initialization overload methods. 
-  - **InitDraggerResizer(FrameworkElement element)** <br>
+  - **void InitDraggerResizer(FrameworkElement element)** <br>
     Use this to initialize a target element with default settings. The position and dimensions of the target as they were before calling the method is kept. By default, all edges and corners of the target element can be used to resize it, and the element can be dragged both orizontally and vertically (provided it has a background). By default, the element is bounded within the canvas at its edges, i.e, no part of the bounding rect of the element can extend across its parent canvas. By default, there are no visual changes when handling the element, and aspect ratio is not maintained.
     ```
     dr.InitDraggerResizer(Rect);
     ```
-  - **InitDraggerResizer(FrameworkElement element, HashSet<Orientation>? orientations, HandlingParameters? parameters = null, HandlingCallbacks? callbacks = null)** <br>
+  - **void InitDraggerResizer(FrameworkElement element, HashSet<Orientation>? orientations, HandlingParameters? parameters = null, HandlingCallbacks? callbacks = null)** <br>
     Use this to initialize a target with specific orientations and optionally, with parameters and callbacks for handling the element. Those are described in detail in the [Enums and Classes](#enums-and-classes) section.
     ```
     var orientations
@@ -50,7 +50,7 @@ Two things you need to note from the onset
     
     dr.InitDraggerResizer(Rect, orientations, parameters, callbacks);
     ```
-  - **InitDraggerResizer(FrameworkElement element, Dictionary<Orientation, Appearance>? orientations, HandlingParameters? parameters = null, HandlingCallbacks? callbacks = null)** <br>
+  - **void InitDraggerResizer(FrameworkElement element, Dictionary<Orientation, Appearance>? orientations, HandlingParameters? parameters = null, HandlingCallbacks? callbacks = null)** <br>
     This is the same as above, except that you can change some visual properties of the handles, like the background colour of the handle if it is hovered or pressed. The HashSet of Orientations is now a Dictionary of Orientations and their Appearances.
     ```
     // The element will be draggable horizontally and vertically and can be resized in four directions.
@@ -70,14 +70,36 @@ Two things you need to note from the onset
     dr.InitDraggerResizer(Rect, orientations, parameters, callbacks);
     ```
     
-- **DeInitDraggerResizer(FrameworkElement element)** <br>
-Call this on an initialized target to deinitialize it. This removes all its handles from the visual tree and references to it from the dr object. The position and dimensions of the target as they were before calling the method is kept.
+- Deinitialization: If a target is no longer needed, or you need to reinitialize it with different parameters/callbacks, you can use these methods on them.
+  - **void DeInitDraggerResizer(FrameworkElement element)** <br>
+    Call this on an initialized target to deinitialize it. This removes all its handles from the visual tree and references to it from the dr object. The position and dimensions of the target as they were before calling the method is kept.
 
-- **RemoveElement(FrameworkElement element)** <br>
-Call this to completely remove an element from the visual tree.
+  - **void RemoveElement(FrameworkElement element)** <br>
+    Call this to completely remove a target from the visual tree.
 
-- **RemoveAllElements()** <br>
-  Call this to remove all targets if your dr instance has initialized more than one.
+  - **void RemoveAllElements()** <br>
+    Call this to remove all targets if your dr instance has initialized more than one.
+
+- Coordinates retrieval: Get the position of a target.
+  - **double GetElementLeft(FrameworkElement element)** <br>
+  Get the left coordinate of the target relative to the canvas. A return value of 30 means the target is 30 pixels away from the left edge of the canvas.
+  - **double GetElementTop(FrameworkElement element)** <br>
+    Get the top coordinate of the target relative to the canvas. A return value of -15 means the target is 15 pixels above from the top edge of the canvas.
+
+- Coordinates modification: Set the position of a target.
+  - **void PositionElementLeft(FrameworkElement element, double left, HandlingParameters? parameters = null)** <br>
+    Set the left coordinate of the target relative to the canvas. A _left_ value of -23 means the target will be positioned 23 pixels to the left of the canvas's left edge. You can specify handling parameters that will be used for this operation. If you don't, the one you provided during initialization will be used.
+  - **void PositionElementTop(FrameworkElement element, double top, HandlingParameters? parameters = null)** <br>
+    Set the top coordinate of the target relative to the canvas. A _top_ value of 8 means the target will be positioned 8 pixels below the canvas's top edge. You can specify handling parameters that will be used for this operation. If you don't, the one you provided during initialization will be used.
+  - **void PositionElement(FrameworkElement element, double left, double top, HandlingParameters? parameters = null)** <br>
+    Set the left and top coordinate of the target relative to the canvas. Combines the above two methods.
+  - **void DragElementHorizontally(FrameworkElement element, double translation)** <br>
+    This is like PositionElementLeft, but relative to the target itself. A _translation_ value of -23 means the target will be positioned 23 pixels to the left of where it was before the call.
+  - **void DragElementVertically(FrameworkElement element, double translation)** <br>
+    This is like PositionElementTop, but relative to the target itself. A _translation_ value of 8 means the target will be positioned 8 pixels downwards.
+  - **void DragElement(FrameworkElement element, double translationX, double translationY)** <br>
+    This combines the above two methods
+  
 
 # Enums and Classes
 - **Orientation**: These represents the position of resize handles and directions allowed for dragging.
