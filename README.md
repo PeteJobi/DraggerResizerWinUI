@@ -216,3 +216,5 @@ Two things you need to note from the onset
   - **ResizeStarted**: This gets called when the user starts to resize with any of the handles. The orientation of the handle is passed into the action.
   - **Resizing**: This gets called while the user resizes with any of the handles for every change in the size. The orientation of the handle is passed into the action.
   - **ResizeCompleted**: This gets called when the user stops resizing with any of the handles. The orientation of the handle is passed into the action.
+
+You may check out [VideoCropperPageWinUI](https://github.com/PeteJobi/VideoCropperPageWinUI) to see a WinUI page that uses this library.
