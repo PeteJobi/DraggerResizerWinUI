@@ -335,6 +335,12 @@ namespace DraggerResizer
             ResizeElement(element, width, height, Orientation.BottomRight, new HandlingParameters{ KeepAspectRatio = false });
         }
 
+        public void SetNewHandlingParameters(FrameworkElement element, HandlingParameters parameters)
+        {
+            if (!entities.TryGetValue(element, out var entity)) return;
+            entity.Parameters = ProcessParameters(parameters);
+        }
+
         public double GetElementLeft(FrameworkElement element)
         {
             if (entities.TryGetValue(element, out var entity)) return Canvas.GetLeft(entity.Parent);
