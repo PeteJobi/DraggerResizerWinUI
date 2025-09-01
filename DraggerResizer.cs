@@ -101,7 +101,9 @@ namespace DraggerResizer
                 {
                     DragManipulationDelta(elementContainer, entity, args.Delta.Translation, dragOrientation.Value);
                     args.Handled = true;
-                    callbacks?.Dragging?.Invoke();
+                    var translation = callbacks?.BeforeDragging?.Invoke(args.Delta.Translation) ?? args.Delta.Translation;
+                    var finalTranslation = DragManipulationDelta(elementContainer, entity, translation, dragOrientation.Value);
+                    callbacks?.AfterDragging?.Invoke(finalTranslation);
                 };
                 if (callbacks?.DragCompleted != null) elementContainer.ManipulationCompleted += (_, _) => callbacks.DragCompleted();
             }
@@ -140,7 +142,9 @@ namespace DraggerResizer
                 {
                     ResizeManipulationDelta(element, entity, args.Delta.Translation, pos);
                     args.Handled = true;
-                    callbacks?.Resizing?.Invoke(pos);
+                    var translation = callbacks?.BeforeResizing?.Invoke(args.Delta.Translation, pos) ?? args.Delta.Translation;
+                    var finalTranslation = ResizeManipulationDelta(element, entity, translation, pos);
+                    callbacks?.AfterResizing?.Invoke(finalTranslation, pos);
                 };
                 if (callbacks?.ResizeCompleted != null) handle.ManipulationCompleted += (_, _) => callbacks.ResizeCompleted.Invoke(pos);
             }
@@ -173,7 +177,9 @@ namespace DraggerResizer
                 {
                     ResizeManipulationDelta(element, entity, args.Delta.Translation, pos);
                     args.Handled = true;
-                    callbacks?.Resizing?.Invoke(pos);
+                    var translation = callbacks?.BeforeResizing?.Invoke(args.Delta.Translation, pos) ?? args.Delta.Translation;
+                    var finalTranslation = ResizeManipulationDelta(element, entity, translation, pos);
+                    callbacks?.AfterResizing?.Invoke(finalTranslation, pos);
                 };
                 if (callbacks?.ResizeCompleted != null) handle.ManipulationCompleted += (_, _) => callbacks.ResizeCompleted.Invoke(pos);
             }
@@ -454,7 +460,7 @@ namespace DraggerResizer
             temporaryEntity.Parameters.MaximumHeight = tempParameters?.MaximumHeight ?? entityParameters.MaximumHeight;
         }
 
-        private void ResizeManipulationDelta(FrameworkElement element, Entity entity, Point translation, Orientation handleOrientation)
+        private Point ResizeManipulationDelta(FrameworkElement element, Entity entity, Point translation, Orientation handleOrientation)
         {
             const int top = 0;
             const int right = 1;
@@ -577,6 +583,8 @@ namespace DraggerResizer
                     throw new ArgumentOutOfRangeException(nameof(handleOrientation), handleOrientation, null);
             }
 
+            return new Point(translationX, translationY);
+
             void ProcessTop(double value)
             {
                 AddHeight(-value, element, entity.Parent, entity.Handles[left], entity.Handles[right]);
@@ -600,19 +608,20 @@ namespace DraggerResizer
                 AddWidth(-value, element, entity.Parent, entity.Handles[top], entity.Handles[bottom]);
                 AddLeft(value, entity.Parent ?? element, entity.Handles[left], entity.Handles[topLeft], entity.Handles[bottomLeft], entity.Handles[top], entity.Handles[bottom]);
             }
-        }
+            }
 
-        private void DragManipulationDelta(FrameworkElement element, Entity entity, Point translation, Orientation handleOrientation)
+        private Point DragManipulationDelta(FrameworkElement element, Entity entity, Point translation, Orientation handleOrientation)
         {
             var translationX = translation.X;
             var translationY = translation.Y;
             var canMoveHorizontally = (handleOrientation & Orientation.Horizontal) == Orientation.Horizontal && !OutOfBounds(ref translationX, element, Orientation.Horizontal, Canvas.GetLeft(element), 0, entity.Parameters);
             var canMoveVertically = (handleOrientation & Orientation.Vertical) == Orientation.Vertical && !OutOfBounds(ref translationY, element, Orientation.Vertical, 0, Canvas.GetTop(element), entity.Parameters);
-            if (!canMoveHorizontally && !canMoveVertically) return;
+            if (!canMoveHorizontally && !canMoveVertically) return new Point();
 
             var allElements = entity.Handles.Prepend(element).ToArray();
             if (canMoveHorizontally) AddLeft(translationX, allElements);
             if (canMoveVertically) AddTop(translationY, allElements);
+            return new Point(translationX, translationY);
         }
 
         private (double left, double top, double right, double bottom) GetManipulationBoundaries(FrameworkElement element, HandlingParameters parameters){
@@ -808,10 +817,12 @@ namespace DraggerResizer
     public class HandlingCallbacks
     {
         public Action? DragStarted { get; set; }
-        public Action? Dragging { get; set; }
+        public Func<Point, Point>? BeforeDragging { get; set; }
+        public Action<Point>? AfterDragging { get; set; }
         public Action? DragCompleted { get; set; }
         public Action<Orientation>? ResizeStarted { get; set; }
-        public Action<Orientation>? Resizing { get; set; }
+        public Func<Point, Orientation, Point>? BeforeResizing { get; set; }
+        public Action<Point, Orientation>? AfterResizing { get; set; }
         public Action<Orientation>? ResizeCompleted { get; set; }
     }
 }
