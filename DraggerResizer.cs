@@ -277,6 +277,13 @@ namespace DraggerResizer
             ResizeManipulationDelta(element, temporaryEntity, new Point(width - entity.Parent.Width, height - entity.Parent.Height), orientation);
         }
 
+        public int GetElementZIndex(FrameworkElement element)
+        {
+            return !entities.TryGetValue(element, out var entity) 
+                ? throw new ArgumentException("Element does not exist") 
+                : Canvas.GetZIndex(entity.Parent);
+        }
+
         public void SetElementZIndex(FrameworkElement element, int zIndex)
         {
             if (!entities.TryGetValue(element, out var entity)) return;
