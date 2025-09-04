@@ -539,7 +539,7 @@ namespace DraggerResizer
                 case Orientation.TopLeft:
                     outOfBoundsAndDimenLeft = ExceededDimensionClamps(ref translationX, entity.Parent, Orientation.Left, entity.Parameters)
                         || OutOfBounds(ref translationX, entity.Parent, Orientation.Left, canvasLeft, canvasTop, entity.Parameters);
-                    outOfBoundsAndDimenTop = OutOfBoundsAndClampsCorners(ref translationX, Orientation.Top, ref translationY);
+                    outOfBoundsAndDimenTop = OutOfBoundsAndClampsCorners(ref translationX, Orientation.Top, false, ref translationY);
                     if (entity.Parameters.KeepAspectRatio.Value && (outOfBoundsAndDimenLeft || outOfBoundsAndDimenTop)) break;
                     if (!outOfBoundsAndDimenTop) ProcessTop(translationY);
                     if (!outOfBoundsAndDimenLeft) ProcessLeft(translationX);
@@ -547,7 +547,7 @@ namespace DraggerResizer
                 case Orientation.TopRight:
                     outOfBoundsAndDimenRight = ExceededDimensionClamps(ref translationX, entity.Parent, Orientation.Right, entity.Parameters)
                         || OutOfBounds(ref translationX, entity.Parent, Orientation.Right, canvasLeft, canvasTop, entity.Parameters);
-                    outOfBoundsAndDimenTop = OutOfBoundsAndClampsCorners(ref translationX, Orientation.Top, ref translationY);
+                    outOfBoundsAndDimenTop = OutOfBoundsAndClampsCorners(ref translationX, Orientation.Top, true, ref translationY);
                     if (entity.Parameters.KeepAspectRatio.Value && (outOfBoundsAndDimenRight || outOfBoundsAndDimenTop)) break;
                     if (!outOfBoundsAndDimenTop) ProcessTop(translationY);
                     if (!outOfBoundsAndDimenRight) ProcessRight(translationX);
@@ -555,7 +555,7 @@ namespace DraggerResizer
                 case Orientation.BottomLeft:
                     outOfBoundsAndDimenLeft = ExceededDimensionClamps(ref translationX, entity.Parent, Orientation.Left, entity.Parameters)
                         || OutOfBounds(ref translationX, entity.Parent, Orientation.Left, canvasLeft, canvasTop, entity.Parameters);
-                    outOfBoundsAndDimenBottom = OutOfBoundsAndClampsCorners(ref translationX, Orientation.Bottom, ref translationY);
+                    outOfBoundsAndDimenBottom = OutOfBoundsAndClampsCorners(ref translationX, Orientation.Bottom, true, ref translationY);
                     if (entity.Parameters.KeepAspectRatio.Value && (outOfBoundsAndDimenLeft || outOfBoundsAndDimenBottom)) break;
                     if (!outOfBoundsAndDimenBottom) ProcessBottom(translationY);
                     if (!outOfBoundsAndDimenLeft) ProcessLeft(translationX);
@@ -563,7 +563,7 @@ namespace DraggerResizer
                 case Orientation.BottomRight:
                     outOfBoundsAndDimenRight = ExceededDimensionClamps(ref translationX, entity.Parent, Orientation.Right, entity.Parameters) 
                         || OutOfBounds(ref translationX, entity.Parent, Orientation.Right, canvasLeft, canvasTop, entity.Parameters);
-                    outOfBoundsAndDimenBottom = OutOfBoundsAndClampsCorners(ref translationX, Orientation.Bottom, ref translationY);
+                    outOfBoundsAndDimenBottom = OutOfBoundsAndClampsCorners(ref translationX, Orientation.Bottom, false, ref translationY);
                     if(entity.Parameters.KeepAspectRatio.Value && (outOfBoundsAndDimenRight || outOfBoundsAndDimenBottom)) break;
                     if (!outOfBoundsAndDimenBottom) ProcessBottom(translationY);
                     if (!outOfBoundsAndDimenRight) ProcessRight(translationX);
@@ -571,7 +571,7 @@ namespace DraggerResizer
                 default:
                     throw new ArgumentOutOfRangeException(nameof(handleOrientation), handleOrientation, null);
             }
-
+            Debug.WriteLine($".....{resultRect.Width}....{resultRect.Height}");
             return resultRect;
 
             void ProcessTop(double value)
@@ -614,6 +614,7 @@ namespace DraggerResizer
 
                 var ar = isVerticalAxis ? element.Height / element.Width : element.Width / element.Height;
                 delta = trans * ar / 2;
+                Debug.WriteLine($"x: {trans}, d: {delta}, l: {canvasLeft}, t: {canvasTop}, ar: {ar}");
                 var savedDelta = delta;
                 if (ExceededDimensionClamps(ref delta, entity.Parent, deltaOrient, entity.Parameters)) return true;
                 if (OutOfBounds(ref delta, entity.Parent, deltaOrient, canvasLeft, canvasTop, entity.Parameters)) return true;
@@ -622,17 +623,29 @@ namespace DraggerResizer
                 if (OutOfBounds(ref deltaMinus, entity.Parent, deltaMinusOrient, canvasLeft, canvasTop, entity.Parameters)) return true;
                 delta = -deltaMinus;
                 if (delta < savedDelta) trans = delta * 2 / ar;
+                Debug.WriteLine($"    x: {trans}, d: {delta}, d2: {delta*2}");
                 return false;
             }
 
-            bool OutOfBoundsAndClampsCorners(ref double transX, Orientation transYOrient, ref double transY)
+            bool OutOfBoundsAndClampsCorners(ref double transX, Orientation transYOrient, bool isNorthEast, ref double transY)
             {
-                var ar = element.Height / element.Width;
-                if(entity.Parameters.KeepAspectRatio.Value) transY = transX * ar;
+                double ar = 0;
+                Debug.WriteLine($"x: {transX}, y: {transY}, l: {canvasLeft}, t: {canvasTop}, ar: {ar}");
+                if (entity.Parameters.KeepAspectRatio.Value)
+                {
+                    ar = element.Height / element.Width;
+                    transY = transX * ar;
+                    if(isNorthEast) transY *= -1;
+                }
                 var savedTransY = transY;
                 if (ExceededDimensionClamps(ref transY, entity.Parent, transYOrient, entity.Parameters)) return true;
                 if (OutOfBounds(ref transY, entity.Parent, transYOrient, canvasLeft, canvasTop, entity.Parameters)) return true;
-                if(transY < savedTransY && entity.Parameters.KeepAspectRatio.Value) transX = transY / ar;
+                if (entity.Parameters.KeepAspectRatio.Value && transY < savedTransY)
+                {
+                    transX = transY / ar;
+                    if(isNorthEast) transX *= -1;
+                }
+                Debug.WriteLine($"    x: {transX}, y: {transY}");
                 return false;
             }
         }
@@ -643,14 +656,25 @@ namespace DraggerResizer
             var translationY = translation.Y;
             var canvasLeft = Canvas.GetLeft(element);
             var canvasTop = Canvas.GetTop(element);
+            var resultRect = new Rect(canvasLeft, canvasTop, element.Width, element.Height);
             var canMoveHorizontally = (handleOrientation & Orientation.Horizontal) == Orientation.Horizontal && !OutOfBounds(ref translationX, element, Orientation.Horizontal, canvasLeft, 0, entity.Parameters);
             var canMoveVertically = (handleOrientation & Orientation.Vertical) == Orientation.Vertical && !OutOfBounds(ref translationY, element, Orientation.Vertical, 0, canvasTop, entity.Parameters);
-            if (!canMoveHorizontally && !canMoveVertically) return new Rect(canvasLeft, canvasTop, element.Width, element.Height);
+            Debug.WriteLine($"ch: {canMoveHorizontally}");
+            if (!canMoveHorizontally && !canMoveVertically) return resultRect;
 
             var allElements = entity.Handles.Prepend(element).ToArray();
-            if (canMoveHorizontally) AddLeft(translationX, allElements);
-            if (canMoveVertically) AddTop(translationY, allElements);
-            return new Rect(canvasLeft + translationX, canvasTop + translationY, element.Width, element.Height);
+            if (canMoveHorizontally)
+            {
+                AddLeft(translationX, allElements);
+                resultRect.X += translationX;
+            }
+            if (canMoveVertically)
+            {
+                AddTop(translationY, allElements);
+                resultRect.Y += translationY;
+            }
+            Debug.WriteLine(resultRect);
+            return resultRect;
         }
 
         private (double left, double top, double right, double bottom) GetManipulationBoundaries(FrameworkElement element, HandlingParameters parameters){
