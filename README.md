@@ -70,7 +70,7 @@ Two things you need to note from the onset
     dr.InitDraggerResizer(Rect, orientations, parameters, callbacks);
     ```
     
-- Deinitialization: If a target is no longer needed, or you need to reinitialize it with different parameters/callbacks, you can use these methods on them.
+- Deinitialization: If a target is no longer needed, or you need to reinitialize it with different orientations/callbacks, you can use these methods on them.
   - **void DeInitDraggerResizer(FrameworkElement element)** <br>
     Call this on an initialized target to deinitialize it. This removes all its handles from the visual tree and references to it from the dr object. The position and dimensions of the target as they were before calling the method is kept.
 
@@ -102,22 +102,28 @@ Two things you need to note from the onset
   - **void DragElement(FrameworkElement element, double translationX, double translationY)** <br>
     This combines the above two methods.
 
-- Dimensions modification: Sets the size of the target.
+- Dimensions modification: Sets the size of a target.
   - **void ResizeElementWidth(FrameworkElement element, double width, Orientation orientation = Orientation.Right, HandlingParameters? parameters = null)** <br>
     Changes the width of the target to the specified _width_ value. The direction in which the target's width is added or subtracted is specified by the orientation property, which is Orientation.Right by default, meaning the Left coordinate won't change. You can specify handling parameters that will be used for this operation. If you don't, the one you provided during initialization will be used.
   - **void ResizeElementHeight(FrameworkElement element, double height, Orientation orientation = Orientation.Bottom, HandlingParameters? parameters = null)** <br>
     Changes the height of the target to the specified _height_ value. The direction in which the target's height is added or subtracted is specified by the orientation property, which is Orientation.Bottom by default, meaning the Top coordinate won't change. You can specify handling parameters that will be used for this operation. If you don't, the one you provided during initialization will be used.
   - **void ResizeElement(FrameworkElement element, double width, double height, Orientation orientation = Orientation.BottomRight, HandlingParameters? parameters = null)** <br>
     Changes the width and height of the target to the specified _width_ and _height_ values. The direction in which the target's dimensions are added or subtracted is specified by the orientation property, which is Orientation.BottomRight by default, meaning the Left and Top coordinate won't change. You can specify handling parameters that will be used for this operation. If you don't, the one you provided during initialization will be used.
-    
-- Miscellaneous: Some other methods that are nice to have.
+
+- Z-Index: Get and set the z-index of a target.
   - **void SetElementZIndex(FrameworkElement element, int zIndex)**
     Call this to set the z-index of a target to the specified _zIndex_ value. Can be useful if you have other elements in the same canvas.
   - **void SetElementZIndexTopmost(FrameworkElement element)**
     If your _dr_ instance has initialized multiple targets, call this method for any of those targets to place it on top of other targets.
+  - **int GetElementZIndex(FrameworkElement element)**
+    Call this to get the z-index of a target.
+  
+- Miscellaneous: Some other methods that are nice to have.
   - **void SetAspectRatio(FrameworkElement element, double aspectRatio)**
     Call this method to set a target's aspect ration to the specified _aspectRatio_ value. This value is expected to be the ratio of width to height expressed in decimal. For example, 16:9 would be ~1.77778. Keep in mind that this only temporarily changes the aspect ratio - if you specified KeepAspectRatio as false during initialization,
     the user can still change the aspect ratio after this call is made. Also, this will reduce the width or height to conform to the ratio, so it doesn't exceed the canvas' bounds.
+  - **void SetNewHandlingParameters(FrameworkElement element, HandlingParameters parameters)**
+    Call this method to change the handling parameters for a target. This will replace the parameters object you set for the target in the initialization method, so if you want to, for example, change the _KeepAspectRatio_ parameter, the object should contain the new value for this property as well as other properties you set for it during initialization.
 
 # Enums and Classes
 - **Orientation**: These represents the position of resize handles and directions allowed for dragging.
@@ -203,18 +209,22 @@ Two things you need to note from the onset
   public class HandlingCallbacks
   {
       public Action? DragStarted { get; set; }
-      public Action? Dragging { get; set; }
+      public Func<Point, Point>? BeforeDragging { get; set; }
+      public Action<Rect>? AfterDragging { get; set; }
       public Action? DragCompleted { get; set; }
       public Action<Orientation>? ResizeStarted { get; set; }
-      public Action<Orientation>? Resizing { get; set; }
+      public Func<Point, Orientation, Point>? BeforeResizing { get; set; }
+      public Action<Rect, Orientation>? AfterResizing { get; set; }
       public Action<Orientation>? ResizeCompleted { get; set; }
   }
   ```
   - **DragStarted**: This gets called just when a user starts to drag the target.
-  - **Dragging**: This gets called while the user drags for every change in the position.
+  - **BeforeDragging**: This gets called while the user drags for every change in drag movement before the change is applied. The change in drag movement is passed into the action, and you can overwrite this change by returning something different. What you return is what will get processed.
+  - **AfterDragging**: This gets called while the user drags for every change in drag movement after the change is applied. A rect with the new position and size of the target is passed into the action.
   - **DragCompleted**: This gets called when the user stops dragging.
   - **ResizeStarted**: This gets called when the user starts to resize with any of the handles. The orientation of the handle is passed into the action.
-  - **Resizing**: This gets called while the user resizes with any of the handles for every change in the size. The orientation of the handle is passed into the action.
+  - **BeforeResizing**: This gets called while the user resizes with any of the handles for every change in drag movement before the change is applied. The change in drag movement as well as the orientation of the handle is passed into the action, and you can overwrite the change by returning something different. What you return is what will get processed.
+  - **AfterResizing**: This gets called while the user resizes with any of the handles for every change in drag movement after the change is applied. A rect with the new position and size of the target as well as the orientation of the handle is passed into the action.
   - **ResizeCompleted**: This gets called when the user stops resizing with any of the handles. The orientation of the handle is passed into the action.
 
 You may check out [VideoCropperPageWinUI](https://github.com/PeteJobi/VideoCropperPageWinUI) to see a WinUI page that uses this library.
