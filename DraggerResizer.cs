@@ -17,7 +17,7 @@ using System.Xml.Linq;
 using Windows.UI;
 using Color = Windows.UI.Color;
 using Point = Windows.Foundation.Point;
-using Rectangle = Microsoft.UI.Xaml.Shapes.Rectangle;
+using Rect = Windows.Foundation.Rect;
 
 namespace DraggerResizer
 {
@@ -470,7 +470,7 @@ namespace DraggerResizer
             temporaryEntity.Parameters.MaximumHeight = tempParameters?.MaximumHeight ?? entityParameters.MaximumHeight;
         }
 
-        private Point ResizeManipulationDelta(FrameworkElement element, Entity entity, Point translation, Orientation handleOrientation)
+        private Rect ResizeManipulationDelta(FrameworkElement element, Entity entity, Point translation, Orientation handleOrientation)
         {
             const int top = 0;
             const int right = 1;
@@ -488,6 +488,8 @@ namespace DraggerResizer
             bool outOfBoundsAndDimenBottom, outOfBoundsAndDimenRight, outOfBoundsAndDimenTop, outOfBoundsAndDimenLeft;
             var canvasLeft = Canvas.GetLeft(entity.Parent);
             var canvasTop = Canvas.GetTop(entity.Parent);
+            var resultRect = new Rect(canvasLeft, canvasTop, entity.Parent.Width, entity.Parent.Height);
+
             switch (handleOrientation)
             {
                 case Orientation.Top:
@@ -570,30 +572,36 @@ namespace DraggerResizer
                     throw new ArgumentOutOfRangeException(nameof(handleOrientation), handleOrientation, null);
             }
 
-            return new Point(translationX, translationY);
+            return resultRect;
 
             void ProcessTop(double value)
             {
                 AddHeight(-value, element, entity.Parent, entity.Handles[left], entity.Handles[right]);
-                AddTop(value, entity.Parent ?? element, entity.Handles[top], entity.Handles[topLeft], entity.Handles[topRight], entity.Handles[left], entity.Handles[right]);
+                AddTop(value, entity.Parent, entity.Handles[top], entity.Handles[topLeft], entity.Handles[topRight], entity.Handles[left], entity.Handles[right]);
+                resultRect.Y += value;
+                resultRect.Height -= value;
             }
 
             void ProcessRight(double value)
             {
                 AddWidth(value, element, entity.Parent, entity.Handles[top], entity.Handles[bottom]);
                 AddLeft(value, entity.Handles[right], entity.Handles[topRight], entity.Handles[bottomRight]);
+                resultRect.Width += value;
             }
 
             void ProcessBottom(double value)
             {
                 AddHeight(value, element, entity.Parent, entity.Handles[left], entity.Handles[right]);
                 AddTop(value, entity.Handles[bottom], entity.Handles[bottomLeft], entity.Handles[bottomRight]);
+                resultRect.Height += value;
             }
 
             void ProcessLeft(double value)
             {
                 AddWidth(-value, element, entity.Parent, entity.Handles[top], entity.Handles[bottom]);
-                AddLeft(value, entity.Parent ?? element, entity.Handles[left], entity.Handles[topLeft], entity.Handles[bottomLeft], entity.Handles[top], entity.Handles[bottom]);
+                AddLeft(value, entity.Parent, entity.Handles[left], entity.Handles[topLeft], entity.Handles[bottomLeft], entity.Handles[top], entity.Handles[bottom]);
+                resultRect.X += value;
+                resultRect.Width -= value;
             }
 
             bool OutOfBoundsAndClampsEdges(ref double trans, Orientation deltaOrient, Orientation deltaMinusOrient, bool isVerticalAxis, out double delta)
@@ -629,18 +637,20 @@ namespace DraggerResizer
             }
         }
 
-        private Point DragManipulationDelta(FrameworkElement element, Entity entity, Point translation, Orientation handleOrientation)
+        private Rect DragManipulationDelta(FrameworkElement element, Entity entity, Point translation, Orientation handleOrientation)
         {
             var translationX = translation.X;
             var translationY = translation.Y;
-            var canMoveHorizontally = (handleOrientation & Orientation.Horizontal) == Orientation.Horizontal && !OutOfBounds(ref translationX, element, Orientation.Horizontal, Canvas.GetLeft(element), 0, entity.Parameters);
-            var canMoveVertically = (handleOrientation & Orientation.Vertical) == Orientation.Vertical && !OutOfBounds(ref translationY, element, Orientation.Vertical, 0, Canvas.GetTop(element), entity.Parameters);
-            if (!canMoveHorizontally && !canMoveVertically) return new Point();
+            var canvasLeft = Canvas.GetLeft(element);
+            var canvasTop = Canvas.GetTop(element);
+            var canMoveHorizontally = (handleOrientation & Orientation.Horizontal) == Orientation.Horizontal && !OutOfBounds(ref translationX, element, Orientation.Horizontal, canvasLeft, 0, entity.Parameters);
+            var canMoveVertically = (handleOrientation & Orientation.Vertical) == Orientation.Vertical && !OutOfBounds(ref translationY, element, Orientation.Vertical, 0, canvasTop, entity.Parameters);
+            if (!canMoveHorizontally && !canMoveVertically) return new Rect(canvasLeft, canvasTop, element.Width, element.Height);
 
             var allElements = entity.Handles.Prepend(element).ToArray();
             if (canMoveHorizontally) AddLeft(translationX, allElements);
             if (canMoveVertically) AddTop(translationY, allElements);
-            return new Point(translationX, translationY);
+            return new Rect(canvasLeft + translationX, canvasTop + translationY, element.Width, element.Height);
         }
 
         private (double left, double top, double right, double bottom) GetManipulationBoundaries(FrameworkElement element, HandlingParameters parameters){
@@ -837,11 +847,11 @@ namespace DraggerResizer
     {
         public Action? DragStarted { get; set; }
         public Func<Point, Point>? BeforeDragging { get; set; }
-        public Action<Point>? AfterDragging { get; set; }
+        public Action<Rect>? AfterDragging { get; set; }
         public Action? DragCompleted { get; set; }
         public Action<Orientation>? ResizeStarted { get; set; }
         public Func<Point, Orientation, Point>? BeforeResizing { get; set; }
-        public Action<Point, Orientation>? AfterResizing { get; set; }
+        public Action<Rect, Orientation>? AfterResizing { get; set; }
         public Action<Orientation>? ResizeCompleted { get; set; }
     }
 }
