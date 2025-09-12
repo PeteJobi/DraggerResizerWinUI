@@ -266,15 +266,28 @@ namespace DraggerResizer
             PositionElement(element, newLeft, newTop);
         }
 
-        public void ResizeElementWidth(FrameworkElement element, double width, Orientation orientation = Orientation.Right, HandlingParameters? parameters = null) => ResizeElement(element, width, 0, orientation, parameters);
-        public void ResizeElementHeight(FrameworkElement element, double height, Orientation orientation = Orientation.Bottom, HandlingParameters? parameters = null) => ResizeElement(element, 0, height, orientation, parameters);
+        public void ResizeElementWidth(FrameworkElement element, double width, Orientation orientation = Orientation.Right, HandlingParameters? parameters = null)
+        {
+            if (!entities.TryGetValue(element, out var entity)) return;
+            ResizeElement(element, width, entity.Parent.Height, orientation, parameters);
+        }
+
+        public void ResizeElementHeight(FrameworkElement element, double height, Orientation orientation = Orientation.Bottom, HandlingParameters? parameters = null)
+        {
+            if (!entities.TryGetValue(element, out var entity)) return;
+            ResizeElement(element, entity.Parent.Width, height, orientation, parameters);
+        }
+
         public void ResizeElement(FrameworkElement element, double width, double height, Orientation orientation = Orientation.BottomRight, HandlingParameters? parameters = null)
         {
             if (!entities.TryGetValue(element, out var entity)) return;
             temporaryEntity.Parent = entity.Parent;
             temporaryEntity.Handles = entity.Handles;
             SetTempParameters(parameters, entity.Parameters);
-            ResizeManipulationDelta(element, temporaryEntity, new Point(width - entity.Parent.Width, height - entity.Parent.Height), orientation);
+            var (deltaX, deltaY) = (width - entity.Parent.Width, height - entity.Parent.Height);
+            if(orientation is Orientation.TopLeft or Orientation.Top or Orientation.TopRight) deltaY *= -1;
+            if(orientation is Orientation.TopLeft or Orientation.Left or Orientation.BottomLeft) deltaX *= -1;
+            ResizeManipulationDelta(element, temporaryEntity, new Point(deltaX, deltaY), orientation);
         }
 
         public int GetElementZIndex(FrameworkElement element)
